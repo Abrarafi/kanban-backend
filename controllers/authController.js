@@ -1,22 +1,22 @@
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
 
 exports.register = async (req, res) => {
   try {
-    const { email, name, password, role } = req.body;
+    const { email, name, password } = req.body;
     
-    const user = new User({ email, name, password, role });
+    const user = new User({ email, name, password });
     await user.save();
     
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { 
-      expiresIn: process.env.JWT_EXPIRES_IN 
+      expiresIn: process.env.JWT_EXPIRES_IN || '30d'
     });
     
     res.status(201).json({
       id: user._id,
       email: user.email,
       name: user.name,
-      role: user.role,
       token
     });
   } catch (err) {
@@ -34,17 +34,89 @@ exports.login = async (req, res) => {
     }
     
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
-      expiresIn: process.env.JWT_EXPIRES_IN
+      expiresIn: process.env.JWT_EXPIRES_IN || '30d'
     });
     
     res.json({
       id: user._id,
       email: user.email,
       name: user.name,
-      role: user.role,
       token
     });
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
+  }
+};
+
+exports.getProfile = async (req, res) => {
+  try {
+    // req.user is set by the auth middleware
+    const user = await User.findById(req.user.id).select('-password');
+    
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.json({
+      id: user._id,
+      email: user.email,
+      name: user.name,
+      avatar: user.avatar,
+      boards: user.boards
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+};
+
+exports.updateProfile = async (req, res) => {
+  try {
+    const { name, email, avatar } = req.body;
+    const user = await User.findById(req.user.id);
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Update fields if provided
+    if (name) user.name = name;
+    if (email) user.email = email;
+    if (avatar) user.avatar = avatar;
+
+    await user.save();
+
+    res.json({
+      id: user._id,
+      email: user.email,
+      name: user.name,
+      avatar: user.avatar
+    });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+};
+
+exports.changePassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    const user = await User.findById(req.user.id);
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Verify current password
+    const isMatch = await user.matchPassword(currentPassword);
+    if (!isMatch) {
+      return res.status(401).json({ error: 'Current password is incorrect' });
+    }
+
+    // Update password
+    user.password = newPassword;
+    await user.save();
+
+    res.json({ message: 'Password updated successfully' });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
   }
 };

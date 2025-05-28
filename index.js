@@ -4,6 +4,7 @@ const cors = require('cors');
 const connectDB = require('./config/db');
 const authRoutes = require('./routes/authRoutes');
 const boardRoutes = require('./routes/boardRoutes');
+const columnRoutes = require('./routes/columnRoutes');
 const cardRoutes = require('./routes/cardRoutes');
 const { createServer } = require('http');
 const { Server } = require('socket.io');
@@ -18,6 +19,7 @@ app.use(express.json());
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/boards', boardRoutes);
+app.use('/api', columnRoutes);
 app.use('/api/cards', cardRoutes);
 
 // Socket.io setup
@@ -40,3 +42,7 @@ connectDB().then(() => {
     console.log(`Server running on port ${PORT}`);
   });
 });
+
+app.post('/test', (req, res) => {
+    res.json({ message: 'Test route is working!' });
+  });

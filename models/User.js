@@ -10,11 +10,6 @@ const UserSchema = new mongoose.Schema({
   },
   name: { type: String, required: true },
   password: { type: String, required: true },
-  role: { 
-    type: String, 
-    enum: ['PROJECT_MANAGER', 'TEAM_MEMBER'], 
-    default: 'TEAM_MEMBER' 
-  },
   avatar: { type: String },
   boards: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Board' }]
 }, { timestamps: true });
