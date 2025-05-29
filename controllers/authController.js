@@ -120,3 +120,24 @@ exports.changePassword = async (req, res) => {
     res.status(400).json({ error: err.message });
   }
 };
+
+exports.signOut = async (req, res) => {
+  try {
+    // Get the token from the request header
+    const token = req.header('Authorization')?.replace('Bearer ', '');
+    
+    if (!token) {
+      return res.status(401).json({ error: 'No token provided' });
+    }
+
+    // Add the token to a blacklist (you might want to use Redis for this in production)
+    // For now, we'll just invalidate the token by setting it to null in the user document
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    await User.findByIdAndUpdate(decoded.id, { token: null });
+
+    res.json({ message: 'Successfully signed out' });
+  } catch (err) {
+    console.error('Sign out error:', err);
+    res.status(500).json({ error: 'Error signing out' });
+  }
+};
